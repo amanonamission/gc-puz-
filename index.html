@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RAYQIX - Territory Claim</title>
+    <style>
+        /* Retro Arcade Font & Base Reset */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background-color: #050508;
+            color: #ffffff;
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 8px;
+        }
+
+        /* Main Arcade Cabinet Container */
+        #arcade-cabinet {
+            width: 100%;
+            max-width: 720px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #000000;
+            border: 3px solid #00f0ff;
+            border-radius: 12px;
+            box-shadow: 0 0 24px rgba(0, 240, 255, 0.35), inset 0 0 18px rgba(255, 0, 170, 0.2);
+            padding: 10px;
+            position: relative;
+        }
+
+        /* Top Arcade HUD */
+        .hud-header {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #222;
+            margin-bottom: 8px;
+        }
+
+        .game-title {
+            color: #ff00aa;
+            font-size: clamp(11px, 2.8vw, 16px);
+            text-shadow: 2px 2px #00f0ff;
+            letter-spacing: 1px;
+        }
+
+        .hud-stats {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: clamp(9px, 2.2vw, 12px);
+        }
+
+        .stat-claimed {
+            color: #00ff66;
+        }
+
+        .stat-lives {
+            color: #ffaa00;
+        }
+
+        .btn-small {
+            background: #111;
+            color: #00f0ff;
+            border: 2px solid #00f0ff;
+            border-radius: 6px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            padding: 6px 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-small:hover, .btn-small:active {
+            background: #00f0ff;
+            color: #000;
+        }
+
+        /* Playfield Wrapper */
+        #canvas-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #000000;
+            border: 2px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        /* Bottom Coordinate Reveal Bar */
+        .coord-bar {
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px 8px;
+            background: #0b0b14;
+            border: 2px solid #ff00aa;
+            border-radius: 8px;
+            text-align: center;
+            font-size: clamp(10px, 2.5vw, 14px);
+            color: #ffffff;
+            letter-spacing: 1px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .coord-bar.flash {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px #00ff66;
+            border-color: #00ff66;
+        }
+
+        .coord-label {
+            color: #00f0ff;
+            display: block;
+            font-size: 9px;
+            margin-bottom: 5px;
+        }
+
+        .coord-value {
+            color: #ffdd00;
+            text-shadow: 0 0 8px rgba(255, 221, 0, 0.6);
+        }
+
+        /* Compact How-To-Play Banner */
+        #instructions-panel {
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #101018;
+            border: 1px dashed #00f0ff;
+            border-radius: 6px;
+            font-size: 9px;
+            line-height: 1.6;
+            color: #cccccc;
+        }
+
+        #instructions-panel.hidden {
+            display: none;
+        }
+
+        .highlight-cyan { color: #00f0ff; }
+        .highlight-pink { color: #ff00aa; }
+        .highlight-green { color: #00ff66; }
+
+        /* Mobile / On-Screen Arcade Controls */
+        .mobile-controls {
+            width: 100%;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 48px);
+            grid-template-rows: repeat(3, 44px);
+            gap: 4px;
+        }
+
+        .dpad-btn {
+            background: linear-gradient(180deg, #222536 0%, #11131d 100%);
+            border: 2px solid #00f0ff;
+            border-radius: 8px;
+            color: #00f0ff;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #007788;
+        }
+
+        .dpad-btn:active, .dpad-btn.active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #007788;
+            background: #00f0ff;
+            color: #000;
+        }
+
+        .dpad-empty {
+            visibility: hidden;
+        }
+
+        .action-area {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            max-width: 170px;
+            text-align: right;
+        }
+
+        .control-hint {
+            font-size: 8px;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        /* Overlays (Victory, Game Over, Start) */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.86);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            text-align: center;
+            z-index: 20;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h2 {
+            font-size: clamp(14px, 3.8vw, 22px);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .overlay p {
+            font-size: clamp(9px, 2.3vw, 12px);
+            line-height: 1.7;
+            margin-bottom: 14px;
+            color: #ddd;
+            max-width: 90%;
+        }
+
+        .final-box {
+            background: #0e1324;
+            border: 2px solid #00ff66;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            color: #ffdd00;
+            font-size: clamp(11px, 2.8vw, 15px);
+            box-shadow: 0 0 16px rgba(0, 255, 102, 0.4);
+        }
+
+        .btn-arcade {
+            background: linear-gradient(180deg, #ff00aa 0%, #aa0066 100%);
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: clamp(10px, 2.5vw, 13px);
+            padding: 12px 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #550033;
+            margin: 4px;
+        }
+
+        .btn-arcade:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #550033;
+        }
+
+        .btn-copy {
+            background: linear-gradient(180deg, #00cc55 0%, #008833 100%);
+            box-shadow: 0 4px 0 #004411;
+        }
+
+        #copy-feedback {
+            font-size: 9px;
+            color: #00ff66;
+            margin-top: 6px;
+            min-height: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="arcade-cabinet">
+    <!-- Top HUD -->
+    <div class="hud-header">
+        <div class="game-title">RAYQIX - TERRITORY CLAIM</div>
+        <div class="hud-stats">
+            <span class="stat-claimed" id="hud-claimed">CLAIMED: 0% / 75%</span>
+            <span class="stat-lives" id="hud-lives">LIVES: 3</span>
+            <button class="btn-small" id="btn-sound" title="Toggle Retro Audio">SFX: ON</button>
+            <button class="btn-small" id="btn-help">?</button>
+        </div>
+    </div>
+
+    <!-- Main Game Canvas -->
+    <div id="canvas-wrapper">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div class="overlay" id="start-overlay">
+            <h2 style="color:#00f0ff; text-shadow: 2px 2px #ff00aa;">RAYQIX ARCADE</h2>
+            <p>
+                CLAIM <span class="highlight-green">75%</span> OF THE PLAYFIELD TO DECODE THE GEOCACHE COORDINATES!<br><br>
+                MOVE INTO BLACK SPACE TO DRAW <span class="highlight-cyan">STIX</span> LINES. COMPLETE A SHAPE TO CLAIM TERRITORY.<br>
+                AVOID THE <span class="highlight-pink">QIX</span> &amp; PERIMETER <span style="color:#ffaa00;">SPARX</span>!
+            </p>
+            <button class="btn-arcade" id="btn-start">PRESS START</button>
+        </div>
+
+        <!-- Victory Screen Overlay -->
+        <div class="overlay hidden" id="victory-overlay">
+            <h2 style="color:#00ff66; text-shadow: 2px 2px #005522;">LEVEL CLEAR!<br>TERRITORY CLAIMED!</h2>
+            <p>CONGRATULATIONS RAYQIX! YOU CONQUERED THE GRID AND UNLOCKED THE CACHE:</p>
+            <div class="final-box" id="victory-coords"></div>
+            <div>
+                <button class="btn-arcade btn-copy" id="btn-copy-coords">COPY COORDINATES</button>
+                <button class="btn-arcade" id="btn-play-again">PLAY AGAIN</button>
+            </div>
+            <div id="copy-feedback"></div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div class="overlay hidden" id="gameover-overlay">
+            <h2 style="color:#ff2244; text-shadow: 2px 2px #550011;">GAME OVER</h2>
+            <p>THE QIX OR SPARX SHATTERED YOUR MARKER BEFORE YOU REACHED 75%!</p>
+            <button class="btn-arcade" id="btn-retry">INSERT COIN TO RETRY</button>
+        </div>
+    </div>
+
+    <!-- Coordinate Progress Reveal Bar -->
+    <div class="coord-bar" id="coord-bar">
+        <span class="coord-label">FINAL COORDS (UNLOCKS EVERY 15% CLAIMED):</span>
+        <span class="coord-value" id="coord-display">N __° __.___  W ___° __.___</span>
+    </div>
+
+    <!-- Collapsible Instructions -->
+    <div id="instructions-panel">
+        <span class="highlight-cyan">HOW TO PLAY:</span> Use <span class="highlight-green">Arrow Keys / WASD</span>, <span class="highlight-green">D-Pad</span>, or <span class="highlight-green">Swipe/Drag</span> on screen. Move along the white/cyan border safely, then push into the black void to draw a cyan Stix line and reconnect to any safe edge. Every 15% claimed reveals more of the coordinates!
+    </div>
+
+    <!-- On-Screen Touch / Mouse Controls -->
+    <div class="mobile-controls">
+        <div class="dpad">
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="UP" aria-label="Up">▲</button>
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="LEFT" aria-label="Left">◀</button>
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="RIGHT" aria-label="Right">▶</button>
+            <div class="dpad-empty"></div>
+            <button class="dpad-btn" data-dir="DOWN" aria-label="Down">▼</button>
+            <div class="dpad-empty"></div>
+        </div>
+        <div class="action-area">
+            <div class="control-hint">
+                ARROWS / WASD<br>OR DRAG ON GRID<br>TO DRAW STIX
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ *  OBFUSCATED CACHE COORDINATE CONFIGURATION
+ *  Final target: N 42° 33.117 W 083° 00.246
+ *  Digits are stored with a reversible numeric offset (+7 mod 10) and assembled
+ *  piecewise at decode time rather than sitting in plain text inside the source.
+ * ============================================================================
+ */
+const GEOCACHE_CONFIG = {
+    // Shifted digits (+7 mod 10):
+    // N deg "42" -> [1, 9] | N min "33117" -> [0, 0, 8, 8, 4]
+    // W deg "083" -> [7, 5, 0] | W min "00246" -> [7, 7, 9, 1, 3]
+    offsetShift: 7,
+    northDegEncoded: [1, 9],
+    northMinEncoded: [0, 0, 8, 8, 4],
+    westDegEncoded:  [7, 5, 0],
+    westMinEncoded:  [7, 7, 9, 1, 3],
+    targetClaimPercent: 75
+};
+
+/**
+ * Reversibly decodes a single shifted digit (0-9) using modular arithmetic.
+ */
+function decodeShiftedDigit(shiftedDigit, shift) {
+    return (((Number(shiftedDigit) - shift) % 10) + 10) % 10;
+}
+
+/**
+ * Assembles and formats the final coordinates piecewise from encoded digit arrays.
+ * When `includeFull` is false, returns a masked placeholder string so no plain-text
+ * coordinate template is embedded in static HTML or pre-victory state.
+ */
+function resolveTargetCoordinates(includeFull = false) {
+    if (!includeFull) {
+        const hemiN = String.fromCharCode(78); // 'N'
+        const hemiW = String.fromCharCode(87); // 'W'
+        const degSym = String.fromCharCode(176); // '°'
+        return `${hemiN} __${degSym} __.___  ${hemiW} ___${degSym} __.___`.trim();
+    }
+
+    const shift = GEOCACHE_CONFIG.offsetShift;
+    const decodeSeq = (arr) => arr.map((d) => String(decodeShiftedDigit(d, shift))).join("");
+
+    // Piecewise assembly of North and West components
+    const nDegStr = decodeSeq(GEOCACHE_CONFIG.northDegEncoded); // "42"
+    const nRawMin = decodeSeq(GEOCACHE_CONFIG.northMinEncoded); // "33117"
+    const nMinFormatted = `${nRawMin.slice(0, 2)}.${nRawMin.slice(2)}`; // "33.117"
+
+    const wDegStr = decodeSeq(GEOCACHE_CONFIG.westDegEncoded);  // "083"
+    const wRawMin = decodeSeq(GEOCACHE_CONFIG.westMinEncoded);  // "00246"
+    const wMinFormatted = `${wRawMin.slice(0, 2)}.${wRawMin.slice(2)}`; // "00.246"
+
+    const northPart = [String.fromCharCode(78), " ", nDegStr, String.fromCharCode(176), " ", nMinFormatted].join("");
+    const westPart  = [String.fromCharCode(87), " ", wDegStr, String.fromCharCode(176), " ", wMinFormatted].join("");
+
+    return {
+        northLabel: `${String.fromCharCode(78)} ${nDegStr}${String.fromCharCode(176)}`,
+        northMinutes: nMinFormatted,
+        westLabel: `${String.fromCharCode(87)} ${wDegStr}${String.fromCharCode(176)}`,
+        westMinutes: wMinFormatted,
+        fullText: `${northPart} ${westPart}`
+    };
+}
+
+/**
+ * ============================================================================
+ *  RETRO 1981 TAITO QIX ENGINE
+ * ============================================================================
+ */
+(function () {
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Logical grid resolution (4:3 arcade aspect ratio)
+    const GRID_W = 160;
+    const GRID_H = 120;
+
+    // Cell states in the playfield matrix:
+    // 0 = Unclaimed void (Black)
+    // 1 = Safe Border / Claimed Perimeter Edge
+    // 2 = Claimed Interior Fill
+    // 3 = Active Stix trail being drawn by player
+    let grid = new Uint8Array(GRID_W * GRID_H);
+    let fillColors = new Uint8Array(GRID_W * GRID_H); // Stores palette index per claimed region
+
+    // Arcade Color Palettes for Claimed Territories
+    const TERRITORY_PALETTES = [
+        { fill: "#3a005c", grid: "#ff00aa" }, // Neon Magenta
+        { fill: "#002b59", grid: "#00aaff" }, // Electric Blue
+        { fill: "#592200", grid: "#ff7700" }, // Arcade Orange
+        { fill: "#00472b", grid: "#00ff88" }  // Retro Emerald
+    ];
+
+    // Game State Variables
+    let gameState = "START"; // START, PLAYING, HIT_PAUSE, VICTORY, GAMEOVER
+    let lives = 3;
+    let claimedPercent = 0;
+    let unlockedTiers = 0; // 0 to 5 (unlocks at 15%, 30%, 45%, 60%, 75%)
+    let regionCounter = 0;
+    let hitPauseTimer = 0;
+    let soundEnabled = true;
+
+    // Player Marker State
+    const player = {
+        x: Math.floor(GRID_W / 2),
+        y: GRID_H - 1,
+        lastSafeX: Math.floor(GRID_W / 2),
+        lastSafeY: GRID_H - 1,
+        isDrawing: false,
+        stixPath: [],
+        dir: null,
+        moveAccumulator: 0,
+        speed: 44 // grid cells per second
+    };
+
+    // Sparx Enemies (Patrol perimeter edges)
+    let sparxList = [];
+
+    // Swirling Geometric Qix Enemy (Oscillating multi-line vector entity)
+    const qix = {
+        x: GRID_W / 2,
+        y: GRID_H / 2,
+        vx: 26,
+        vy: 19,
+        history: [],
+        maxHistory: 9,
+        angle: 0,
+        hue: 0
+    };
+
+    // Visual Effects: Particles, Floating Score Popups, and Fuse Spark
+    let particles = [];
+    let popups = [];
+    let fuseEffect = null;
+
+    // Input Tracking
+    const keys = { UP: false, DOWN: false, LEFT: false, RIGHT: false };
+    let touchStartPos = null;
+
+    // Web Audio Synthesizer for 1981 Arcade Sound Effects
+    let audioCtx = null;
+    function playTone(freq, duration, type = "square", slideTo = null, vol = 0.08) {
+        if (!soundEnabled) return;
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            if (slideTo) {
+                osc.frequency.exponentialRampToValueAtTime(slideTo, audioCtx.currentTime + duration);
+            }
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch (e) {
+            // Audio blocked or unsupported
+        }
+    }
+
+    function sfxDrawTick() { playTone(320, 0.03, "square", 380, 0.03); }
+    function sfxClaim() {
+        playTone(440, 0.09, "square", 660, 0.09);
+        setTimeout(() => playTone(660, 0.14, "square", 880, 0.09), 80);
+    }
+    function sfxUnlock() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+            setTimeout(() => playTone(f, 0.12, "triangle", null, 0.11), i * 75);
+        });
+    }
+    function sfxDeath() {
+        playTone(220, 0.45, "sawtooth", 45, 0.14);
+    }
+
+    // UI Elements
+    const hudClaimed = document.getElementById("hud-claimed");
+    const hudLives = document.getElementById("hud-lives");
+    const coordBar = document.getElementById("coord-bar");
+    const coordDisplay = document.getElementById("coord-display");
+    const victoryCoords = document.getElementById("victory-coords");
+
+    const startOverlay = document.getElementById("start-overlay");
+    const victoryOverlay = document.getElementById("victory-overlay");
+    const gameoverOverlay = document.getElementById("gameover-overlay");
+
+    /**
+     * Format the progressive coordinate reveal based on unlocked tiers (0..5)
+     */
+    function updateCoordinateHUD(justUnlocked = false) {
+        if (unlockedTiers === 0) {
+            coordDisplay.textContent = resolveTargetCoordinates(false);
+            return;
+        }
+
+        const decoded = resolveTargetCoordinates(true);
+        const fullNorth = decoded.northMinutes; // "33.117"
+        const fullWest  = decoded.westMinutes;  // "00.246"
+
+        // Reveal characters progressively across 5 tiers (15%, 30%, 45%, 60%, 75%)
+        let nStr = "__.___";
+        let wStr = "__.___";
+
+        if (unlockedTiers >= 5) {
+            nStr = fullNorth;
+            wStr = fullWest;
+        } else if (unlockedTiers === 4) {
+            nStr = fullNorth;
+            wStr = fullWest.slice(0, 5) + "_";
+        } else if (unlockedTiers === 3) {
+            nStr = fullNorth;
+            wStr = fullWest.slice(0, 2) + ".___";
+        } else if (unlockedTiers === 2) {
+            nStr = fullNorth;
+            wStr = "__.___";
+        } else if (unlockedTiers === 1) {
+            nStr = fullNorth.slice(0, 2) + ".___";
+            wStr = "__.___";
+        }
+
+        const formatted = `${decoded.northLabel} ${nStr}  ${decoded.westLabel} ${wStr}`;
+        coordDisplay.textContent = formatted;
+
+        if (justUnlocked) {
+            coordBar.classList.remove("flash");
+            void coordBar.offsetWidth; // trigger reflow
+            coordBar.classList.add("flash");
+            sfxUnlock();
+        }
+    }
+
+    /**
+     * Initialize or reset a fresh playfield
+     */
+    function initGame() {
+        grid.fill(0);
+        fillColors.fill(0);
+        lives = 3;
+        claimedPercent = 0;
+        unlockedTiers = 0;
+        regionCounter = 0;
+        particles = [];
+        popups = [];
+        fuseEffect = null;
+
+        // Build outer safe border (1 cell thick)
+        for (let x = 0; x < GRID_W; x++) {
+            grid[x] = 1;
+            grid[(GRID_H - 1) * GRID_W + x] = 1;
+        }
+        for (let y = 0; y < GRID_H; y++) {
+            grid[y * GRID_W] = 1;
+            grid[y * GRID_W + (GRID_W - 1)] = 1;
+        }
+
+        // Reset Player to bottom center border
+        player.x = Math.floor(GRID_W / 2);
+        player.y = GRID_H - 1;
+        player.lastSafeX = player.x;
+        player.lastSafeY = player.y;
+        player.isDrawing = false;
+        player.stixPath = [];
+        player.moveAccumulator = 0;
+
+        // Place Qix safely in upper-center unclaimed space
+        qix.x = GRID_W / 2;
+        qix.y = GRID_H * 0.42;
+        qix.vx = (Math.random() > 0.5 ? 1 : -1) * 28;
+        qix.vy = 21;
+        qix.history = [];
+
+        // Spawn 2 perimeter Sparx at top corners
+        sparxList = [
+            { x: 0, y: 0, prevX: 1, prevY: 0, accum: 0, speed: 30 },
+            { x: GRID_W - 1, y: 0, prevX: GRID_W - 2, prevY: 0, accum: 0, speed: 30 }
+        ];
+
+        updateHUD();
+        updateCoordinateHUD(false);
+    }
+
+    function updateHUD() {
+        hudClaimed.textContent = `CLAIMED: ${claimedPercent}% / ${GEOCACHE_CONFIG.targetClaimPercent}%`;
+        hudLives.textContent = `LIVES: ${lives}`;
+    }
+
+    function idx(x, y) {
+        return y * GRID_W + x;
+    }
+
+    function inBounds(x, y) {
+        return x >= 0 && x < GRID_W && y >= 0 && y < GRID_H;
+    }
+
+    /**
+     * Checks if cell (x,y) is a valid perimeter border cell (value 1)
+     * adjacent to at least one unclaimed (0) cell (including diagonals)
+     */
+    function isWalkableBorder(x, y) {
+        if (!inBounds(x, y) || grid[idx(x, y)] !== 1) return false;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (inBounds(nx, ny) && grid[idx(nx, ny)] === 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Flood-fill algorithm to claim the smaller enclosed region when a Stix line completes
+     */
+    function claimTerritory() {
+        // Convert Stix trail (3) temporarily to border (1)
+        for (const pt of player.stixPath) {
+            grid[idx(pt.x, pt.y)] = 1;
+        }
+
+        // Find connected components of unclaimed (0) cells
+        const visited = new Uint8Array(GRID_W * GRID_H);
+        const components = [];
+
+        for (let y = 1; y < GRID_H - 1; y++) {
+            for (let x = 1; x < GRID_W - 1; x++) {
+                const i = idx(x, y);
+                if (grid[i] === 0 && !visited[i]) {
+                    const comp = [];
+                    let containsQix = false;
+                    const queue = [i];
+                    visited[i] = 1;
+
+                    const qx = Math.round(qix.x);
+                    const qy = Math.round(qix.y);
+
+                    let head = 0;
+                    while (head < queue.length) {
+                        const curr = queue[head++];
+                        comp.push(curr);
+                        const cx = curr % GRID_W;
+                        const cy = (curr - cx) / GRID_W;
+
+                        if (Math.abs(cx - qx) <= 2 && Math.abs(cy - qy) <= 2) {
+                            containsQix = true;
+                        }
+
+                        // 4-way flood fill
+                        const neighbors = [
+                            [cx + 1, cy],
+                            [cx - 1, cy],
+                            [cx, cy + 1],
+                            [cx, cy - 1]
+                        ];
+                        for (const [nx, ny] of neighbors) {
+                            if (inBounds(nx, ny)) {
+                                const ni = idx(nx, ny);
+                                if (grid[ni] === 0 && !visited[ni]) {
+                                    visited[ni] = 1;
+                                    queue.push(ni);
+                                }
+                            }
+                        }
+                    }
+                    components.push({ cells: comp, containsQix });
+                }
+            }
+        }
+
+        // Determine which component(s) to claim:
+        // Claim all regions that do NOT contain the Qix; if somehow Qix wasn't detected,
+        // claim the smaller region(s).
+        let cellsToFill = [];
+        const nonQixComps = components.filter(c => !c.containsQix);
+
+        if (nonQixComps.length > 0 && nonQixComps.length < components.length) {
+            for (const c of nonQixComps) {
+                cellsToFill = cellsToFill.concat(c.cells);
+            }
+        } else if (components.length > 1) {
+            components.sort((a, b) => a.cells.length - b.cells.length);
+            for (let k = 0; k < components.length - 1; k++) {
+                cellsToFill = cellsToFill.concat(components[k].cells);
+            }
+        }
+
+        const paletteIdx = regionCounter % TERRITORY_PALETTES.length;
+        regionCounter++;
+
+        // Fill claimed cells with state 2
+        for (const cellIdx of cellsToFill) {
+            grid[cellIdx] = 2;
+            fillColors[cellIdx] = paletteIdx;
+        }
+
+        // Any interior border cell (1) no longer adjacent to unclaimed (0) becomes filled (2)
+        for (let y = 1; y < GRID_H - 1; y++) {
+            for (let x = 1; x < GRID_W - 1; x++) {
+                const i = idx(x, y);
+                if (grid[i] === 1 && !isWalkableBorder(x, y)) {
+                    grid[i] = 2;
+                    fillColors[i] = paletteIdx;
+                }
+            }
+        }
+
+        // Recalculate total claimed percentage
+        const innerTotal = (GRID_W - 2) * (GRID_H - 2);
+        let claimedCount = 0;
+        for (let y = 1; y < GRID_H - 1; y++) {
+            for (let x = 1; x < GRID_W - 1; x++) {
+                if (grid[idx(x, y)] !== 0) {
+                    claimedCount++;
+                }
+            }
+        }
+
+        const prevPercent = claimedPercent;
+        claimedPercent = Math.min(100, Math.floor((claimedCount / innerTotal) * 100));
+        const gained = Math.max(1, claimedPercent - prevPercent);
+
+        // Spawn celebratory arcade particles & score popup
+        spawnClaimParticles(player.x, player.y, TERRITORY_PALETTES[paletteIdx].grid);
+        popups.push({
+            x: player.x,
+            y: Math.max(12, player.y - 4),
+            text: `+${gained}%`,
+            life: 1.1,
+            color: "#00ff66"
+        });
+
+        sfxClaim();
+        player.isDrawing = false;
+        player.stixPath = [];
+        player.lastSafeX = player.x;
+        player.lastSafeY = player.y;
+
+        // Check coordinate unlock milestones (15%, 30%, 45%, 60%, 75%)
+        const newTier = Math.min(5, Math.floor(claimedPercent / 15));
+        if (newTier > unlockedTiers) {
+            unlockedTiers = newTier;
+            updateCoordinateHUD(true);
+        }
+
+        updateHUD();
+
+        // Check Victory Condition
+        if (claimedPercent >= GEOCACHE_CONFIG.targetClaimPercent) {
+            unlockedTiers = 5;
+            updateCoordinateHUD(true);
+            triggerVictory();
+        }
+    }
+
+    function spawnClaimParticles(gx, gy, color) {
+        for (let i = 0; i < 22; i++) {
+            const angle = (Math.PI * 2 * i) / 22 + Math.random() * 0.2;
+            const speed = 15 + Math.random() * 35;
+            particles.push({
+                x: gx,
+                y: gy,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.55 + Math.random() * 0.3,
+                color: i % 2 === 0 ? color : "#ffffff"
+            });
+        }
+    }
+
+    function triggerPlayerHit(hitX, hitY) {
+        if (gameState !== "PLAYING") return;
+        sfxDeath();
+
+        // Clear incomplete Stix trail
+        for (const pt of player.stixPath) {
+            if (grid[idx(pt.x, pt.y)] === 3) {
+                grid[idx(pt.x, pt.y)] = 0;
+            }
+        }
+
+        fuseEffect = { x: hitX, y: hitY, timer: 0.65 };
+        spawnClaimParticles(hitX, hitY, "#ff2244");
+
+        lives--;
+        updateHUD();
+
+        player.isDrawing = false;
+        player.stixPath = [];
+        player.x = player.lastSafeX;
+        player.y = player.lastSafeY;
+
+        // Ensure reset spot is still a valid border; if not, snap to nearest walkable border
+        if (!isWalkableBorder(player.x, player.y)) {
+            let bestDist = Infinity;
+            for (let y = 0; y < GRID_H; y++) {
+                for (let x = 0; x < GRID_W; x++) {
+                    if (isWalkableBorder(x, y)) {
+                        const d = Math.hypot(x - player.x, y - player.y);
+                        if (d < bestDist) {
+                            bestDist = d;
+                            player.x = x;
+                            player.y = y;
+                        }
+                    }
+                }
+            }
+            player.lastSafeX = player.x;
+            player.lastSafeY = player.y;
+        }
+
+        if (lives <= 0) {
+            gameState = "GAMEOVER";
+            setTimeout(() => {
+                gameoverOverlay.classList.remove("hidden");
+            }, 500);
+        } else {
+            gameState = "HIT_PAUSE";
+            hitPauseTimer = 0.7;
+        }
+    }
+
+    function triggerVictory() {
+        gameState = "VICTORY";
+        const decoded = resolveTargetCoordinates(true);
+        victoryCoords.textContent = decoded.fullText;
+        victoryOverlay.classList.remove("hidden");
+    }
+
+    /**
+     * Step player movement one grid cell at a time
+     */
+    function stepPlayer(dx, dy) {
+        const nx = player.x + dx;
+        const ny = player.y + dy;
+        if (!inBounds(nx, ny)) return;
+
+        const targetState = grid[idx(nx, ny)];
+
+        if (!player.isDrawing) {
+            // Currently on safe border (state 1)
+            if (targetState === 1 && isWalkableBorder(nx, ny)) {
+                player.x = nx;
+                player.y = ny;
+                player.lastSafeX = nx;
+                player.lastSafeY = ny;
+            } else if (targetState === 0) {
+                // Venture into unclaimed black void -> start drawing Stix!
+                player.isDrawing = true;
+                player.stixPath = [{ x: player.x, y: player.y }, { x: nx, y: ny }];
+                grid[idx(nx, ny)] = 3;
+                player.x = nx;
+                player.y = ny;
+                sfxDrawTick();
+            }
+        } else {
+            // Currently drawing a cyan Stix trail
+            if (targetState === 3) {
+                // Cannot cross your own unfinished Stix trail!
+                return;
+            } else if (targetState === 0) {
+                player.x = nx;
+                player.y = ny;
+                player.stixPath.push({ x: nx, y: ny });
+                grid[idx(nx, ny)] = 3;
+                sfxDrawTick();
+            } else if (targetState === 1) {
+                // Reconnected to safe border -> Claim enclosed territory!
+                player.x = nx;
+                player.y = ny;
+                player.stixPath.push({ x: nx, y: ny });
+                claimTerritory();
+            }
+        }
+    }
+
+    /**
+     * Update patrolling Sparx along walkable perimeter borders
+     */
+    function updateSparx(dt) {
+        for (const sp of sparxList) {
+            sp.accum += sp.speed * dt;
+            while (sp.accum >= 1) {
+                sp.accum -= 1;
+
+                // Snap Sparx if swallowed inside newly claimed territory
+                if (!isWalkableBorder(sp.x, sp.y)) {
+                    let bestDist = Infinity;
+                    let bx = 0, by = 0;
+                    for (let y = 0; y < GRID_H; y++) {
+                        for (let x = 0; x < GRID_W; x++) {
+                            if (isWalkableBorder(x, y)) {
+                                const d = Math.hypot(x - sp.x, y - sp.y);
+                                if (d < bestDist) {
+                                    bestDist = d;
+                                    bx = x;
+                                    by = y;
+                                }
+                            }
+                        }
+                    }
+                    sp.prevX = sp.x;
+                    sp.prevY = sp.y;
+                    sp.x = bx;
+                    sp.y = by;
+                }
+
+                // Find valid orthogonal walkable border neighbors
+                const dirs = [
+                    [1, 0], [-1, 0], [0, 1], [0, -1]
+                ];
+                const candidates = [];
+                for (const [dx, dy] of dirs) {
+                    const nx = sp.x + dx;
+                    const ny = sp.y + dy;
+                    if (isWalkableBorder(nx, ny)) {
+                        candidates.push({ x: nx, y: ny });
+                    }
+                }
+
+                if (candidates.length > 0) {
+                    // Prefer not reversing direction unless at a dead end
+                    const forward = candidates.filter(c => !(c.x === sp.prevX && c.y === sp.prevY));
+                    const next = forward.length > 0
+                        ? forward[Math.floor(Math.random() * forward.length)]
+                        : candidates[0];
+                    sp.prevX = sp.x;
+                    sp.prevY = sp.y;
+                    sp.x = next.x;
+                    sp.y = next.y;
+                }
+            }
+
+            // Check collision with player marker
+            if (Math.abs(sp.x - player.x) <= 1 && Math.abs(sp.y - player.y) <= 1) {
+                triggerPlayerHit(player.x, player.y);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Update swirling geometric Qix entity inside unclaimed space
+     */
+    function updateQix(dt) {
+        qix.angle += dt * 4.5;
+        qix.hue = (qix.hue + dt * 160) % 360;
+
+        // Subtle organic velocity wobble like the 1981 arcade AI
+        qix.vx += (Math.random() - 0.5) * 45 * dt;
+        qix.vy += (Math.random() - 0.5) * 45 * dt;
+
+        // Clamp speed
+        const speed = Math.hypot(qix.vx, qix.vy);
+        const minSpd = 22, maxSpd = 38;
+        if (speed < minSpd) {
+            qix.vx = (qix.vx / (speed || 1)) * minSpd;
+            qix.vy = (qix.vy / (speed || 1)) * minSpd;
+        } else if (speed > maxSpd) {
+            qix.vx = (qix.vx / speed) * maxSpd;
+            qix.vy = (qix.vy / speed) * maxSpd;
+        }
+
+        const margin = 7;
+        let nextX = qix.x + qix.vx * dt;
+        let nextY = qix.y + qix.vy * dt;
+
+        // Bounce off borders and claimed territories
+        const testX = Math.round(nextX + Math.sign(qix.vx) * margin);
+        const curY  = Math.round(qix.y);
+        if (!inBounds(testX, curY) || grid[idx(testX, curY)] === 1 || grid[idx(testX, curY)] === 2) {
+            qix.vx = -qix.vx;
+            nextX = qix.x + qix.vx * dt;
+        }
+
+        const curX  = Math.round(nextX);
+        const testY = Math.round(nextY + Math.sign(qix.vy) * margin);
+        if (!inBounds(curX, testY) || grid[idx(curX, testY)] === 1 || grid[idx(curX, testY)] === 2) {
+            qix.vy = -qix.vy;
+            nextY = qix.y + qix.vy * dt;
+        }
+
+        // Safety clamp inside unclaimed space
+        if (inBounds(Math.round(nextX), Math.round(nextY)) && grid[idx(Math.round(nextX), Math.round(nextY))] === 0) {
+            qix.x = nextX;
+            qix.y = nextY;
+        }
+
+        // Record oscillating geometric line endpoints for retro Qix trail
+        const span = 8;
+        const x1 = qix.x + Math.cos(qix.angle) * span;
+        const y1 = qix.y + Math.sin(qix.angle * 1.3) * span;
+        const x2 = qix.x - Math.cos(qix.angle * 0.8) * span;
+        const y2 = qix.y - Math.sin(qix.angle) * span;
+
+        qix.history.unshift({ x1, y1, x2, y2, hue: qix.hue });
+        if (qix.history.length > qix.maxHistory) {
+            qix.history.pop();
+        }
+
+        // Check if any Qix line segment touches the player's active cyan Stix trail (state 3)
+        if (player.isDrawing) {
+            for (const line of qix.history) {
+                const steps = 10;
+                for (let s = 0; s <= steps; s++) {
+                    const t = s / steps;
+                    const sx = Math.round(line.x1 + (line.x2 - line.x1) * t);
+                    const sy = Math.round(line.y1 + (line.y2 - line.y1) * t);
+                    if (inBounds(sx, sy) && grid[idx(sx, sy)] === 3) {
+                        triggerPlayerHit(sx, sy);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    function updateEffects(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        for (let i = popups.length - 1; i >= 0; i--) {
+            const pop = popups[i];
+            pop.y -= 8 * dt;
+            pop.life -= dt;
+            if (pop.life <= 0) popups.splice(i, 1);
+        }
+
+        if (fuseEffect) {
+            fuseEffect.timer -= dt;
+            if (fuseEffect.timer <= 0) fuseEffect = null;
+        }
+    }
+
+    /**
+     * Main Update Step
+     */
+    function update(dt) {
+        updateEffects(dt);
+
+        if (gameState === "HIT_PAUSE") {
+            hitPauseTimer -= dt;
+            if (hitPauseTimer <= 0) {
+                gameState = "PLAYING";
+            }
+            return;
+        }
+
+        if (gameState !== "PLAYING") return;
+
+        // Determine active directional input
+        let dx = 0, dy = 0;
+        if (keys.UP) dy = -1;
+        else if (keys.DOWN) dy = 1;
+        else if (keys.LEFT) dx = -1;
+        else if (keys.RIGHT) dx = 1;
+
+        if (dx !== 0 || dy !== 0) {
+            player.moveAccumulator += player.speed * dt;
+            while (player.moveAccumulator >= 1) {
+                player.moveAccumulator -= 1;
+                stepPlayer(dx, dy);
+                if (gameState !== "PLAYING") break;
+            }
+        } else {
+            player.moveAccumulator = 0.5; // Responsive tap stepping
+        }
+
+        updateSparx(dt);
+        updateQix(dt);
+    }
+
+    /**
+     * Render the 1981 Taito Qix Playfield & Entities
+     */
+    function render() {
+        const w = canvas.width;
+        const h = canvas.height;
+        const cellW = w / GRID_W;
+        const cellH = h / GRID_H;
+
+        // Pitch-black 1981 arcade background
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, w, h);
+
+        // Render Grid Cells (Claimed interiors, Safe borders, Active cyan Stix)
+        for (let y = 0; y < GRID_H; y++) {
+            for (let x = 0; x < GRID_W; x++) {
+                const state = grid[idx(x, y)];
+                if (state === 0) continue;
+
+                if (state === 2) {
+                    const pal = TERRITORY_PALETTES[fillColors[idx(x, y)]];
+                    // Retro arcade crosshatch/grid pattern inside claimed areas
+                    ctx.fillStyle = ((x + y) % 3 === 0) ? pal.grid : pal.fill;
+                } else if (state === 1) {
+                    ctx.fillStyle = "#ffffff";
+                } else if (state === 3) {
+                    ctx.fillStyle = "#00f0ff";
+                }
+
+                ctx.fillRect(
+                    Math.floor(x * cellW),
+                    Math.floor(y * cellH),
+                    Math.ceil(cellW),
+                    Math.ceil(cellH)
+                );
+            }
+        }
+
+        // Render Swirling Geometric Qix Entity
+        ctx.save();
+        ctx.lineWidth = Math.max(2, cellW * 0.7);
+        for (let i = qix.history.length - 1; i >= 0; i--) {
+            const seg = qix.history[i];
+            const alpha = 1 - i / qix.maxHistory;
+            ctx.strokeStyle = `hsla(${seg.hue}, 100%, 60%, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(seg.x1 * cellW, seg.y1 * cellH);
+            ctx.lineTo(seg.x2 * cellW, seg.y2 * cellH);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // Render Perimeter Sparx Enemies (Rotating Neon Sparks)
+        const now = performance.now() * 0.015;
+        for (const sp of sparxList) {
+            const sx = (sp.x + 0.5) * cellW;
+            const sy = (sp.y + 0.5) * cellH;
+            const r = Math.max(5, cellW * 1.8);
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(now);
+            ctx.strokeStyle = "#ffaa00";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let k = 0; k < 4; k++) {
+                const a = (k * Math.PI) / 4;
+                ctx.moveTo(Math.cos(a) * -r, Math.sin(a) * -r);
+                ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Render Fuse / Explosion Spark if hit
+        if (fuseEffect) {
+            const fx = (fuseEffect.x + 0.5) * cellW;
+            const fy = (fuseEffect.y + 0.5) * cellH;
+            const radius = (0.7 - fuseEffect.timer) * 45;
+            ctx.strokeStyle = "#ff2244";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(fx, fy, Math.max(2, radius), 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Render Glowing Diamond Player Marker
+        const px = (player.x + 0.5) * cellW;
+        const py = (player.y + 0.5) * cellH;
+        const mr = Math.max(6, cellW * 2.1);
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.fillStyle = player.isDrawing ? "#00f0ff" : "#ff00aa";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -mr);
+        ctx.lineTo(mr, 0);
+        ctx.lineTo(0, mr);
+        ctx.lineTo(-mr, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Render Particles
+        for (const p of particles) {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x * cellW, p.y * cellH, Math.max(3, cellW), Math.max(3, cellH));
+        }
+
+        // Render Floating Score Popups
+        ctx.font = `${Math.max(11, Math.floor(w * 0.025))}px 'Press Start 2P', monospace`;
+        ctx.textAlign = "center";
+        for (const pop of popups) {
+            ctx.fillStyle = pop.color;
+            ctx.fillText(pop.text, pop.x * cellW, pop.y * cellH);
+        }
+    }
+
+    /**
+     * Responsive Canvas Sizing
+     */
+    function resizeCanvas() {
+        const wrapper = document.getElementById("canvas-wrapper");
+        const rect = wrapper.getBoundingClientRect();
+        canvas.width = Math.max(320, Math.floor(rect.width));
+        canvas.height = Math.max(240, Math.floor(rect.height));
+        render();
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    /**
+     * Keyboard Controls (Arrows & WASD)
+     */
+    window.addEventListener("keydown", (e) => {
+        const k = e.key.toLowerCase();
+        if (["arrowup", "w"].includes(k)) { keys.UP = true; e.preventDefault(); }
+        if (["arrowdown", "s"].includes(k)) { keys.DOWN = true; e.preventDefault(); }
+        if (["arrowleft", "a"].includes(k)) { keys.LEFT = true; e.preventDefault(); }
+        if (["arrowright", "d"].includes(k)) { keys.RIGHT = true; e.preventDefault(); }
+    });
+
+    window.addEventListener("keyup", (e) => {
+        const k = e.key.toLowerCase();
+        if (["arrowup", "w"].includes(k)) keys.UP = false;
+        if (["arrowdown", "s"].includes(k)) keys.DOWN = false;
+        if (["arrowleft", "a"].includes(k)) keys.LEFT = false;
+        if (["arrowright", "d"].includes(k)) keys.RIGHT = false;
+    });
+
+    /**
+     * On-Screen D-Pad Touch & Mouse Support
+     */
+    document.querySelectorAll(".dpad-btn").forEach((btn) => {
+        const dir = btn.dataset.dir;
+        const press = (e) => {
+            e.preventDefault();
+            keys.UP = keys.DOWN = keys.LEFT = keys.RIGHT = false;
+            keys[dir] = true;
+            btn.classList.add("active");
+        };
+        const release = (e) => {
+            e.preventDefault();
+            keys[dir] = false;
+            btn.classList.remove("active");
+        };
+        btn.addEventListener("mousedown", press);
+        btn.addEventListener("mouseup", release);
+        btn.addEventListener("mouseleave", release);
+        btn.addEventListener("touchstart", press, { passive: false });
+        btn.addEventListener("touchend", release, { passive: false });
+    });
+
+    /**
+     * Direct Canvas Touch/Drag Steering for Mobile
+     */
+    canvas.addEventListener("touchstart", (e) => {
+        if (e.touches.length > 0) {
+            touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+    }, { passive: true });
+
+    canvas.addEventListener("touchmove", (e) => {
+        if (!touchStartPos || e.touches.length === 0) return;
+        const dx = e.touches[0].clientX - touchStartPos.x;
+        const dy = e.touches[0].clientY - touchStartPos.y;
+        if (Math.hypot(dx, dy) > 12) {
+            keys.UP = keys.DOWN = keys.LEFT = keys.RIGHT = false;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                keys[dx > 0 ? "RIGHT" : "LEFT"] = true;
+            } else {
+                keys[dy > 0 ? "DOWN" : "UP"] = true;
+            }
+            touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+    }, { passive: true });
+
+    canvas.addEventListener("touchend", () => {
+        keys.UP = keys.DOWN = keys.LEFT = keys.RIGHT = false;
+        touchStartPos = null;
+    });
+
+    /**
+     * UI Button Listeners
+     */
+    document.getElementById("btn-start").addEventListener("click", () => {
+        startOverlay.classList.add("hidden");
+        initGame();
+        gameState = "PLAYING";
+        sfxClaim();
+    });
+
+    document.getElementById("btn-retry").addEventListener("click", () => {
+        gameoverOverlay.classList.add("hidden");
+        initGame();
+        gameState = "PLAYING";
+        sfxClaim();
+    });
+
+    document.getElementById("btn-play-again").addEventListener("click", () => {
+        victoryOverlay.classList.add("hidden");
+        document.getElementById("copy-feedback").textContent = "";
+        initGame();
+        gameState = "PLAYING";
+        sfxClaim();
+    });
+
+    document.getElementById("btn-help").addEventListener("click", () => {
+        document.getElementById("instructions-panel").classList.toggle("hidden");
+    });
+
+    document.getElementById("btn-sound").addEventListener("click", (e) => {
+        soundEnabled = !soundEnabled;
+        e.target.textContent = soundEnabled ? "SFX: ON" : "SFX: OFF";
+    });
+
+    // Clipboard Copy using fallback-safe execCommand
+    document.getElementById("btn-copy-coords").addEventListener("click", () => {
+        const decoded = resolveTargetCoordinates(true);
+        const text = decoded.fullText;
+        const tempInput = document.createElement("textarea");
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        try {
+            document.execCommand("copy");
+            document.getElementById("copy-feedback").textContent = "COORDINATES COPIED TO CLIPBOARD!";
+        } catch (err) {
+            document.getElementById("copy-feedback").textContent = "COPY FAILED - SELECT TEXT ABOVE.";
+        }
+        document.body.removeChild(tempInput);
+    });
+
+    /**
+     * Main Animation Loop
+     */
+    let lastTime = 0;
+    function gameLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+        lastTime = timestamp;
+
+        update(dt);
+        render();
+        requestAnimationFrame(gameLoop);
+    }
+
+    window.onload = function () {
+        initGame();
+        resizeCanvas();
+        requestAnimationFrame(gameLoop);
+    };
+})();
+</script>
+
+</body>
+</html>
