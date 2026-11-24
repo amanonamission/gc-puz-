@@ -320,7 +320,7 @@
 
         <!-- Start Screen Overlay -->
         <div class="overlay" id="start-overlay">
-            <h2 style="color:#00f0ff; text-shadow: 2px 2px #ff00aa;">RAYQIX ARCADE</h2>
+            <h2 style="color:#00f0ff; text-shadow: 2px 2px #ff00aa;">COOL CREW ARCADE</h2>
             <p>
                 CLAIM <span class="highlight-green">75%</span> OF THE PLAYFIELD TO DECODE THE GEOCACHE COORDINATES!<br><br>
                 MOVE INTO BLACK SPACE TO DRAW <span class="highlight-cyan">STIX</span> LINES. COMPLETE A SHAPE TO CLAIM TERRITORY.<br>
@@ -332,7 +332,7 @@
         <!-- Victory Screen Overlay -->
         <div class="overlay hidden" id="victory-overlay">
             <h2 style="color:#00ff66; text-shadow: 2px 2px #005522;">LEVEL CLEAR!<br>TERRITORY CLAIMED!</h2>
-            <p>CONGRATULATIONS RAYQIX! YOU CONQUERED THE GRID AND UNLOCKED THE CACHE:</p>
+            <p>CONGRATULATIONS GEOCACHER! YOU CONQUERED THE GRID AND UNLOCKED THE CACHE:</p>
             <div class="final-box" id="victory-coords"></div>
             <div>
                 <button class="btn-arcade btn-copy" id="btn-copy-coords">COPY COORDINATES</button>
@@ -352,7 +352,7 @@
     <!-- Coordinate Progress Reveal Bar -->
     <div class="coord-bar" id="coord-bar">
         <span class="coord-label">FINAL COORDS (UNLOCKS EVERY 15% CLAIMED):</span>
-        <span class="coord-value" id="coord-display">N __° __.___  W ___° __.___</span>
+        <span class="coord-value" id="coord-display"></span>
     </div>
 
     <!-- Collapsible Instructions -->
@@ -384,16 +384,10 @@
 <script>
 /**
  * ============================================================================
- *  OBFUSCATED CACHE COORDINATE CONFIGURATION
- *  Final target: N 42° 33.117 W 083° 00.246
- *  Digits are stored with a reversible numeric offset (+7 mod 10) and assembled
- *  piecewise at decode time rather than sitting in plain text inside the source.
+ *  CACHE COORDINATE CONFIGURATION
  * ============================================================================
  */
 const GEOCACHE_CONFIG = {
-    // Shifted digits (+7 mod 10):
-    // N deg "42" -> [1, 9] | N min "33117" -> [0, 0, 8, 8, 4]
-    // W deg "083" -> [7, 5, 0] | W min "00246" -> [7, 7, 9, 1, 3]
     offsetShift: 7,
     northDegEncoded: [1, 9],
     northMinEncoded: [0, 0, 8, 8, 4],
@@ -416,9 +410,9 @@ function decodeShiftedDigit(shiftedDigit, shift) {
  */
 function resolveTargetCoordinates(includeFull = false) {
     if (!includeFull) {
-        const hemiN = String.fromCharCode(78); // 'N'
-        const hemiW = String.fromCharCode(87); // 'W'
-        const degSym = String.fromCharCode(176); // '°'
+        const hemiN = String.fromCharCode(78);
+        const hemiW = String.fromCharCode(87);
+        const degSym = String.fromCharCode(176);
         return `${hemiN} __${degSym} __.___  ${hemiW} ___${degSym} __.___`.trim();
     }
 
@@ -426,13 +420,13 @@ function resolveTargetCoordinates(includeFull = false) {
     const decodeSeq = (arr) => arr.map((d) => String(decodeShiftedDigit(d, shift))).join("");
 
     // Piecewise assembly of North and West components
-    const nDegStr = decodeSeq(GEOCACHE_CONFIG.northDegEncoded); // "42"
-    const nRawMin = decodeSeq(GEOCACHE_CONFIG.northMinEncoded); // "33117"
-    const nMinFormatted = `${nRawMin.slice(0, 2)}.${nRawMin.slice(2)}`; // "33.117"
+    const nDegStr = decodeSeq(GEOCACHE_CONFIG.northDegEncoded);
+    const nRawMin = decodeSeq(GEOCACHE_CONFIG.northMinEncoded);
+    const nMinFormatted = `${nRawMin.slice(0, 2)}.${nRawMin.slice(2)}`;
 
-    const wDegStr = decodeSeq(GEOCACHE_CONFIG.westDegEncoded);  // "083"
-    const wRawMin = decodeSeq(GEOCACHE_CONFIG.westMinEncoded);  // "00246"
-    const wMinFormatted = `${wRawMin.slice(0, 2)}.${wRawMin.slice(2)}`; // "00.246"
+    const wDegStr = decodeSeq(GEOCACHE_CONFIG.westDegEncoded);
+    const wRawMin = decodeSeq(GEOCACHE_CONFIG.westMinEncoded);
+    const wMinFormatted = `${wRawMin.slice(0, 2)}.${wRawMin.slice(2)}`;
 
     const northPart = [String.fromCharCode(78), " ", nDegStr, String.fromCharCode(176), " ", nMinFormatted].join("");
     const westPart  = [String.fromCharCode(87), " ", wDegStr, String.fromCharCode(176), " ", wMinFormatted].join("");
@@ -585,8 +579,8 @@ function resolveTargetCoordinates(includeFull = false) {
         }
 
         const decoded = resolveTargetCoordinates(true);
-        const fullNorth = decoded.northMinutes; // "33.117"
-        const fullWest  = decoded.westMinutes;  // "00.246"
+        const fullNorth = decoded.northMinutes;
+        const fullWest  = decoded.westMinutes;
 
         // Reveal characters progressively across 5 tiers (15%, 30%, 45%, 60%, 75%)
         let nStr = "__.___";
